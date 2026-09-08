@@ -863,7 +863,7 @@ def callback_query(call):
     bot.send_message(
         call.message.chat.id,
         '📸 **अपना Instagram Username या Profile Link भेजें:**\n\n'
-        'उदा: `rohit_sharma` या `https://instagram.com/rohit_sharma`',
+        ': ``  ``',
         parse_mode='Markdown',
     )
 
