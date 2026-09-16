@@ -6,27 +6,28 @@ from flask import Flask
 import telebot
 from telebot import types
 
-# ----------------- कॉन्फ़िगरेशन -----------------
-TOKEN = '8818399396:AAGz1-xkSUprQUr8ST64AoC_ire81rObcEU'  # आपका बोट टोकन
-ADMIN_ID = 6262854630  # आपकी Telegram User ID
-ADMIN_USERNAME = 'Helpbot655_bot'  # आपका टेलीग्राम यूज़रनेम (बिना @ के)
-REQUIRED_CHANNEL = '@ksp008h'  # आपका टेलीग्राम चैनल यूजरनेम
+# ----------------- Configuration -----------------
+TOKEN = '8818399396:AAGz1-xkSUprQUr8ST64AoC_ire81rObcEU'  # Your Bot Token
+ADMIN_ID = 6262854630  # Your Telegram User ID
+REQUIRED_CHANNEL = '@ksp008h'  # Your Telegram Channel Username
 # ------------------------------------------------
 
 bot = telebot.TeleBot(TOKEN)
 
-# डेटाबेस (Memory Storage)
+# Database (Memory Storage)
 users = {}
 user_state = {}
 temp_promotion_data = {}
-pending_approvals = {}  # एडमिन अप्रूवल के लिए पेंडिंग स्क्रीनशॉट
+pending_approvals = {}  # Pending screenshots for admin approval
 
-# डायनामिक सेटिंग्स
+# Dynamic Settings
 bot_settings = {
     'reward_coins': 10,
-    'cost_per_hour': 20,  # प्रति घंटे का चार्ज
-    'daily_bonus': 50,  # डेली बोनस कॉइन्स
-    'referral_bonus': 15,  # रेफरल बोनस
+    'cost_per_hour': 20,  # Cost per hour
+    'daily_bonus': 50,  # Daily bonus coins
+    'referral_bonus': 15,  # Referral bonus
+    'support_contact': 'https://t.me/Helpbot655_bot',  # Default Support Link
+    'coin_packages': [],  # VIP Packages list
 }
 
 ig_follow_pool = []
@@ -34,7 +35,7 @@ ig_like_pool = []
 yt_sub_pool = []
 
 
-# ----------------- ऑटो-क्लीनअप बैकग्राउंड वर्कर -----------------
+# ----------------- Auto-Cleanup Background Worker -----------------
 def cleanup_expired_promotions():
   while True:
     current_time = time.time()
@@ -54,7 +55,7 @@ def cleanup_expired_promotions():
 threading.Thread(target=cleanup_expired_promotions, daemon=True).start()
 
 
-# ----------------- चैनल मेंबरशिप चेक फंक्शन -----------------
+# ----------------- Channel Membership Check Function -----------------
 def check_subscription(user_id):
   try:
     member = bot.get_chat_member(REQUIRED_CHANNEL, user_id)
@@ -65,7 +66,7 @@ def check_subscription(user_id):
   return False
 
 
-# ----------------- कीबोर्ड जनरेटर -----------------
+# ----------------- Keyboard Generators -----------------
 def get_main_menu(user_id):
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   markup.add(
@@ -103,12 +104,19 @@ def get_admin_menu():
       types.KeyboardButton('⚙️ Set Daily Bonus'),
       types.KeyboardButton('⚙️ Set Referral Bonus'),
   )
-  markup.add(types.KeyboardButton('➕ Add Coins to User'))
+  markup.add(
+      types.KeyboardButton('⚙️ Set Support Contact'),
+      types.KeyboardButton('➕ Add Coins to User')
+  )
+  markup.add(
+      types.KeyboardButton('💳 Add Coin Package'),
+      types.KeyboardButton('🗑️ Clear Packages')
+  )
   markup.add(types.KeyboardButton('🏠 Back to Main Menu'))
   return markup
 
 
-# ----------------- स्टार्ट कमांड -----------------
+# ----------------- Start Command -----------------
 @bot.message_handler(commands=['start'])
 def start_bot(message):
   user_id = message.from_user.id
@@ -140,11 +148,10 @@ def start_bot(message):
 
     bot.send_message(
         message.chat.id,
-        '❌ **बोट का उपयोग करने के लिए आपको हमारा चैनल ज्वॉइन करना अनिवार्य'
-        ' है!**\n\n'
-        f'पहले नीचे दिए गए बटन पर क्लिक करके हमारा चैनल ज्वॉइन करें: 👉'
+        '❌ **You must join our channel to use this bot!**\n\n'
+        f'First, join our channel by clicking the button below: 👉'
         f' {REQUIRED_CHANNEL}\n\n'
-        'चैनल ज्वॉइन करने के बाद **\'Check Membership\'** बटन पर क्लिक करें।',
+        'After joining, click the **\'Check Membership\'** button.',
         parse_mode='Markdown',
         reply_markup=markup,
     )
@@ -169,18 +176,17 @@ def start_bot(message):
       try:
         bot.send_message(
             referrer_id,
-            '🎉 **नया रेफरल!**\nआपके लिंक से एक यूजर ने बोट जॉइन किया है। आपको'
-            f" **+{bot_settings['referral_bonus']} Coins** मिले हैं!",
+            '🎉 **New Referral!**\nA user joined the bot using your link. You received'
+            f" **+{bot_settings['referral_bonus']} Coins**!",
             parse_mode='Markdown',
         )
       except:
         pass
 
   welcome_text = (
-      '👋 **Multi-Promote Bot में आपका स्वागत है!**\n\n'
-      'यहाँ आप टास्क पूरे करके कॉइन्स कमा सकते हैं और अपने लिंक्स को घंटों के'
-      ' हिसाब से प्रमोट कर सकते हैं।\n\n'
-      '👇 नीचे दिए गए मेनू से विकल्प चुनें:'
+      '👋 **Welcome to the Multi-Promote Bot!**\n\n'
+      'Here you can earn coins by completing tasks and promote your links on an hourly or daily basis.\n\n'
+      '👇 Select an option from the menu below:'
   )
   bot.send_message(
       message.chat.id,
@@ -190,7 +196,7 @@ def start_bot(message):
   )
 
 
-# ----------------- फोटो/स्क्रीनशॉट हैंडलर -----------------
+# ----------------- Photo/Screenshot Handler -----------------
 @bot.message_handler(content_types=['photo'])
 def handle_photos(message):
   user_id = message.from_user.id
@@ -210,10 +216,8 @@ def handle_photos(message):
 
     bot.send_message(
         message.chat.id,
-        '⏳ **आपका स्क्रीनशॉट एडमिन के पास वेरिफिकेशन के लिए भेज दिया गया'
-        ' है!**\n\n'
-        'कृपया **10 से 15 मिनट** प्रतीक्षा करें। एडमिन द्वारा चेक करने के बाद'
-        ' आपके कॉइन्स जोड़ दिए जाएंगे।',
+        '⏳ **Your screenshot has been sent to the admin for verification!**\n\n'
+        'Please wait **10 to 15 minutes**. Coins will be added after the admin reviews it.',
         parse_mode='Markdown',
         reply_markup=get_main_menu(user_id),
     )
@@ -228,11 +232,11 @@ def handle_photos(message):
         ADMIN_ID,
         photo_id,
         caption=(
-            '🔔 **नया टास्क स्क्रीनशॉट आया है!**\n\n'
-            f"👤 यूजर: @{message.from_user.username or 'No Username'} (ID:"
+            '🔔 **New Task Screenshot Received!**\n\n'
+            f"👤 User: @{message.from_user.username or 'No Username'} (ID:"
             f' `{user_id}`)\n'
-            f'🎯 टारगेट: `{target_val}`\n'
-            f"🎁 रिवॉर्ड: `{bot_settings['reward_coins']} Coins`"
+            f'🎯 Target: `{target_val}`\n'
+            f"🎁 Reward: `{bot_settings['reward_coins']} Coins`"
         ),
         parse_mode='Markdown',
         reply_markup=admin_markup,
@@ -240,11 +244,11 @@ def handle_photos(message):
   else:
     bot.send_message(
         message.chat.id,
-        '❌ कृपया पहले कोई टास्क चुनें और नियमों के अनुसार आगे बढ़ें।',
+        '❌ Please select a task first and proceed according to the rules.',
     )
 
 
-# ----------------- टेक्स्ट और स्टेट हैंडलर -----------------
+# ----------------- Text and State Handler -----------------
 @bot.message_handler(func=lambda message: True)
 def handle_text(message):
   user_id = message.from_user.id
@@ -265,7 +269,62 @@ def handle_text(message):
 
   current_state = user_state.get(user_id)
 
-  # 1. प्रमोट इनपुट स्टेट्स
+  # --- Custom Days Input Handler ---
+  if current_state == 'WAITING_CUSTOM_DAYS_INPUT':
+    try:
+      days = int(text.strip())
+      if days <= 0:
+        bot.send_message(message.chat.id, "❌ Please enter 1 or more days.")
+        return
+
+      hours = days * 24
+      total_cost = hours * bot_settings['cost_per_hour']
+
+      if users[user_id]['balance'] < total_cost:
+        bot.send_message(
+            message.chat.id,
+            f'❌ Insufficient balance! You need `{total_cost} Coins` for {days} days ({hours} hours).\n'
+            f'💰 Your current balance: `{users[user_id]["balance"]} Coins`',
+            parse_mode='Markdown'
+        )
+        user_state[user_id] = None
+        temp_promotion_data.pop(user_id, None)
+        return
+
+      users[user_id]['balance'] -= total_cost
+      promo_info = temp_promotion_data[user_id]
+      expires_at = time.time() + (hours * 3600)
+
+      pool_item = {
+          'target': promo_info['target'],
+          'expires_at': expires_at,
+          'owner_id': user_id,
+      }
+
+      if promo_info['type'] == 'WAITING_IG_FOLLOW':
+        ig_follow_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_IG_LIKE':
+        ig_like_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_YT_SUB':
+        yt_sub_pool.append(pool_item)
+
+      users[user_id]['promotions'].append(pool_item)
+      user_state[user_id] = None
+      temp_promotion_data.pop(user_id, None)
+
+      bot.send_message(
+          message.chat.id,
+          f'✅ **Promoted Successfully!**\nYour link will be live for the next **{days} days**.\n'
+          f'💸 `{total_cost} Coins` have been deducted from your account.',
+          reply_markup=get_main_menu(user_id),
+          parse_mode='Markdown',
+      )
+    except ValueError:
+      bot.send_message(message.chat.id, '❌ Please send numbers only (e.g., 5, 10, 15).')
+    return
+
+
+  # 1. Promote Input States
   if current_state in [
       'WAITING_IG_FOLLOW',
       'WAITING_IG_LIKE',
@@ -287,42 +346,56 @@ def handle_text(message):
     user_state[user_id] = 'WAITING_HOURS'
 
     cost_1h = bot_settings['cost_per_hour']
+    cost_1d = cost_1h * 24
+    
     markup = types.InlineKeyboardMarkup(row_width=3)
     markup.add(
-        types.InlineKeyboardButton('1 घंटा', callback_data='hrs_1'),
-        types.InlineKeyboardButton('3 घंटे', callback_data='hrs_3'),
-        types.InlineKeyboardButton('6 घंटे', callback_data='hrs_6'),
-        types.InlineKeyboardButton('12 घंटे', callback_data='hrs_12'),
-        types.InlineKeyboardButton('24 घंटे', callback_data='hrs_24'),
+        types.InlineKeyboardButton('1 Hour', callback_data='hrs_1'),
+        types.InlineKeyboardButton('6 Hours', callback_data='hrs_6'),
+        types.InlineKeyboardButton('12 Hours', callback_data='hrs_12'),
     )
+    markup.add(
+        types.InlineKeyboardButton('1 Day', callback_data='hrs_24'),
+        types.InlineKeyboardButton('2 Days', callback_data='hrs_48'),
+        types.InlineKeyboardButton('3 Days', callback_data='hrs_72'),
+    )
+    markup.add(
+        types.InlineKeyboardButton('7 Days (1 Week)', callback_data='hrs_168')
+    )
+    markup.add(
+        types.InlineKeyboardButton('✏️ Enter Custom Days', callback_data='custom_days')
+    )
+    
     bot.send_message(
         message.chat.id,
-        f'⏱️ **यूजरनेम/लिंक दर्ज हो गया:** `{entry}`\n\n'
-        f'इसे कितने समय के लिए लाइव रखना चाहते हैं?\n'
-        f'रेट: `{cost_1h} Coins` प्रति घंटा',
+        f'⏱️ **Username/Link saved:** `{entry}`\n\n'
+        f'How long do you want to keep it live?\n'
+        f'Rate: `{cost_1h} Coins` per hour | `{cost_1d} Coins` per day',
         parse_mode='Markdown',
         reply_markup=markup,
     )
     return
 
-  # 2. एडमिन पैनल स्टेट्स
+  # 2. Admin Panel States
   if user_id == ADMIN_ID and current_state in [
       'SET_REWARD',
       'SET_COST',
       'SET_BONUS',
       'SET_REFERRAL',
       'ADD_COINS_INPUT',
+      'SET_SUPPORT_CONTACT',
+      'ADD_COIN_PACKAGE'
   ]:
     if current_state == 'SET_REWARD':
       try:
         bot_settings['reward_coins'] = int(text.strip())
         bot.send_message(
             message.chat.id,
-            f"✅ अपडेट हो गया! नया रिवॉर्ड: {bot_settings['reward_coins']} Coins",
+            f"✅ Updated! New Reward: {bot_settings['reward_coins']} Coins",
             reply_markup=get_admin_menu(),
         )
       except ValueError:
-        bot.send_message(message.chat.id, '❌ कृपया सिर्फ नंबर भेजें।')
+        bot.send_message(message.chat.id, '❌ Please send numbers only.')
       user_state[user_id] = None
       return
 
@@ -331,11 +404,11 @@ def handle_text(message):
         bot_settings['cost_per_hour'] = int(text.strip())
         bot.send_message(
             message.chat.id,
-            f"✅ अपडेट हो गया! नई कीमत: {bot_settings['cost_per_hour']} Coins",
+            f"✅ Updated! New Cost: {bot_settings['cost_per_hour']} Coins",
             reply_markup=get_admin_menu(),
         )
       except ValueError:
-        bot.send_message(message.chat.id, '❌ कृपया सिर्फ नंबर भेजें।')
+        bot.send_message(message.chat.id, '❌ Please send numbers only.')
       user_state[user_id] = None
       return
 
@@ -344,11 +417,11 @@ def handle_text(message):
         bot_settings['daily_bonus'] = int(text.strip())
         bot.send_message(
             message.chat.id,
-            f"✅ अपडेट हो गया! नया डेली बोनस: {bot_settings['daily_bonus']} Coins",
+            f"✅ Updated! New Daily Bonus: {bot_settings['daily_bonus']} Coins",
             reply_markup=get_admin_menu(),
         )
       except ValueError:
-        bot.send_message(message.chat.id, '❌ कृपया सिर्फ नंबर भेजें।')
+        bot.send_message(message.chat.id, '❌ Please send numbers only.')
       user_state[user_id] = None
       return
 
@@ -357,12 +430,11 @@ def handle_text(message):
         bot_settings['referral_bonus'] = int(text.strip())
         bot.send_message(
             message.chat.id,
-            f"✅ अपडेट हो गया! नया रेफरल बोनस:"
-            f" {bot_settings['referral_bonus']} Coins",
+            f"✅ Updated! New Referral Bonus: {bot_settings['referral_bonus']} Coins",
             reply_markup=get_admin_menu(),
         )
       except ValueError:
-        bot.send_message(message.chat.id, '❌ कृपया सिर्फ नंबर भेजें।')
+        bot.send_message(message.chat.id, '❌ Please send numbers only.')
       user_state[user_id] = None
       return
 
@@ -384,21 +456,43 @@ def handle_text(message):
           users[target_user_id]['balance'] += coins_to_add
           bot.send_message(
               message.chat.id,
-              '✅ सफलतापूर्वक कॉइन जोड़ दिए गए!',
+              '✅ Coins added successfully!',
               reply_markup=get_admin_menu(),
           )
         else:
           bot.send_message(
               message.chat.id,
-              '❌ गलत फॉर्मेट! उदाहरण दें: `123456 500`',
+              '❌ Invalid format! Example: `123456 500`',
               parse_mode='Markdown',
           )
       except Exception as e:
-        bot.send_message(message.chat.id, f'❌ एरर: {e}')
+        bot.send_message(message.chat.id, f'❌ Error: {e}')
       user_state[user_id] = None
       return
 
-  # 3. एडमिन पैनल बटन क्लिक्स
+    elif current_state == 'SET_SUPPORT_CONTACT':
+      bot_settings['support_contact'] = text.strip()
+      bot.send_message(
+          message.chat.id, 
+          f"✅ Support link updated!\nNew Support: `{bot_settings['support_contact']}`", 
+          parse_mode='Markdown',
+          reply_markup=get_admin_menu()
+      )
+      user_state[user_id] = None
+      return
+
+    elif current_state == 'ADD_COIN_PACKAGE':
+      bot_settings['coin_packages'].append(text.strip())
+      bot.send_message(
+          message.chat.id, 
+          f"✅ New VIP package added!\nPackage: `{text.strip()}`", 
+          parse_mode='Markdown',
+          reply_markup=get_admin_menu()
+      )
+      user_state[user_id] = None
+      return
+
+  # 3. Admin Panel Button Clicks
   if text == '👑 Admin Panel' and user_id == ADMIN_ID:
     user_state[user_id] = None
     bot.send_message(
@@ -416,12 +510,12 @@ def handle_text(message):
   elif text == '🔔 Pending Task Approvals' and user_id == ADMIN_ID:
     if not pending_approvals:
       bot.send_message(
-          message.chat.id, '📭 अभी कोई भी पेंडिंग स्क्रीनशॉट अप्रूवल के लिए नहीं है।'
+          message.chat.id, '📭 There are no pending screenshots for approval at the moment.'
       )
     else:
       bot.send_message(
           message.chat.id,
-          f'📋 कुल पेंडिंग रिक्वेस्ट्स: `{len(pending_approvals)}`',
+          f'📋 Total pending requests: `{len(pending_approvals)}`',
           parse_mode='Markdown',
       )
     return
@@ -430,7 +524,7 @@ def handle_text(message):
     user_state[user_id] = None
     bot.send_message(
         message.chat.id,
-        '🏠 Main Menu में वापसी:',
+        '🏠 Back to Main Menu:',
         reply_markup=get_main_menu(user_id),
     )
     return
@@ -438,7 +532,7 @@ def handle_text(message):
   elif text == '⚙️ Set Reward Coins' and user_id == ADMIN_ID:
     user_state[user_id] = 'SET_REWARD'
     bot.send_message(
-        message.chat.id, 'नया टास्क रिवॉर्ड अमाउंट टाइप करके भेजें (सिर्फ नंबर):'
+        message.chat.id, 'Enter the new task reward amount (numbers only):'
     )
     return
 
@@ -446,7 +540,7 @@ def handle_text(message):
     user_state[user_id] = 'SET_COST'
     bot.send_message(
         message.chat.id,
-        'प्रमोशन की प्रति घंटे की कीमत टाइप करके भेजें (सिर्फ नंबर):',
+        'Enter the hourly promotion cost (numbers only):',
     )
     return
 
@@ -454,7 +548,7 @@ def handle_text(message):
     user_state[user_id] = 'SET_BONUS'
     bot.send_message(
         message.chat.id,
-        'नया डेली बोनस कॉइन अमाउंट टाइप करके भेजें (सिर्फ नंबर):',
+        'Enter the new daily bonus amount (numbers only):',
     )
     return
 
@@ -462,7 +556,7 @@ def handle_text(message):
     user_state[user_id] = 'SET_REFERRAL'
     bot.send_message(
         message.chat.id,
-        'नया रेफरल बोनस कॉइन अमाउंट टाइप करके भेजें (सिर्फ नंबर):',
+        'Enter the new referral bonus amount (numbers only):',
     )
     return
 
@@ -470,12 +564,27 @@ def handle_text(message):
     user_state[user_id] = 'ADD_COINS_INPUT'
     bot.send_message(
         message.chat.id,
-        '➕ सही फॉर्मेट में भेजें:\n`User_ID Space Coins`\nउदाहरण: `123456 500`',
+        '➕ Send in the correct format:\n`User_ID Space Coins`\nExample: `123456 500`',
         parse_mode='Markdown',
     )
     return
 
-  # 4. मुख्य मेनू (Main Menu Buttons)
+  elif text == '⚙️ Set Support Contact' and user_id == ADMIN_ID:
+    user_state[user_id] = 'SET_SUPPORT_CONTACT'
+    bot.send_message(message.chat.id, 'Send the new support username or link\n(Example: `@YourNewBot` or `https://t.me/yourusername`):', parse_mode='Markdown')
+    return
+
+  elif text == '💳 Add Coin Package' and user_id == ADMIN_ID:
+    user_state[user_id] = 'ADD_COIN_PACKAGE'
+    bot.send_message(message.chat.id, 'Send the details of the new premium package.\nExample: `$10 = 1000 Coins` or `₹50 - 50,000 Coins`', parse_mode='Markdown')
+    return
+
+  elif text == '🗑️ Clear Packages' and user_id == ADMIN_ID:
+    bot_settings['coin_packages'] = []
+    bot.send_message(message.chat.id, '✅ All coin packages deleted successfully!', reply_markup=get_admin_menu())
+    return
+
+  # 4. Main Menu Buttons
   if text == '🎁 Daily Bonus':
     current_time = time.time()
     last_bonus_time = users[user_id].get('last_bonus_time', 0)
@@ -487,8 +596,8 @@ def handle_text(message):
       minutes = (remaining_time % 3600) // 60
       bot.send_message(
           message.chat.id,
-          '⏳ आप आज का बोनस पहले ही ले चुके हैं!\nअगला बोनस आपको **'
-          f' {hours} घंटे {minutes} मिनट** बाद मिलेगा।',
+          '⏳ You have already claimed today\'s bonus!\n'
+          f'You will get the next bonus after **{hours} hours {minutes} minutes**.',
           parse_mode='Markdown',
       )
     else:
@@ -497,8 +606,8 @@ def handle_text(message):
       users[user_id]['last_bonus_time'] = current_time
       bot.send_message(
           message.chat.id,
-          '🎉 बधाई हो! आपको सफलतापूर्वक'
-          f' **+{bonus_amt} Coins** डेली बोनस मिल गया है!',
+          '🎉 Congratulations! You have successfully received a daily bonus of'
+          f' **+{bonus_amt} Coins**!',
           parse_mode='Markdown',
           reply_markup=get_main_menu(user_id),
       )
@@ -513,21 +622,19 @@ def handle_text(message):
 
     msg = (
         f'👥 **Refer & Earn Program**\n\n'
-        f'अपने दोस्तों को आमंत्रित करें और प्रत्येक सफल रेफ़रल पर **{bonus}'
-        ' Coins** कमाएं!\n\n'
-        f'🔗 **आपका रेफरल लिंक:**\n`{referral_link}`\n\n'
-        f'📊 **आपके कुल इनवाइट्स:** `{ref_count}`\n\n'
-        '⚠️ *नोट: पॉइंट्स तभी मिलेंगे जब आपका दोस्त बोट स्टार्ट करके हमारा चैनल'
-        ' ज्वॉइन करेगा।*'
+        f'Invite your friends and earn **{bonus} Coins** for each successful referral!\n\n'
+        f'🔗 **Your Referral Link:**\n`{referral_link}`\n\n'
+        f'📊 **Total Invites:** `{ref_count}`\n\n'
+        '⚠️ *Note: You will only receive points if your friend starts the bot and joins our channel.*'
     )
     markup = types.InlineKeyboardMarkup()
     share_url = (
         'https://t.me/share/url?url='
         + referral_link
-        + '&text=🌟%20इस%20बोट%20से%20पॉइंट्स%20कमाएं%20और%20प्रमोशन%20करें!'
+        + '&text=🌟%20Earn%20points%20and%20promote%20using%20this%20bot!'
     )
     markup.add(
-        types.InlineKeyboardButton('📤 दोस्तों को शेयर करें', url=share_url)
+        types.InlineKeyboardButton('📤 Share with friends', url=share_url)
     )
 
     bot.send_message(
@@ -535,24 +642,46 @@ def handle_text(message):
     )
 
   elif text == '💳 Buy Coins (Premium)':
-    bot.send_message(
-        message.chat.id,
-        '💎 कॉइन्स खरीदने के लिए Support पर संपर्क करें।',
-        parse_mode='Markdown',
-    )
+    packages = bot_settings.get('coin_packages', [])
+    support = bot_settings.get('support_contact', 'https://t.me/Helpbot655_bot')
+    
+    if support.startswith('@'):
+        support_url = f"https://t.me/{support.replace('@', '')}"
+    elif not support.startswith('http'):
+        support_url = f"https://t.me/{support}"
+    else:
+        support_url = support
+
+    if not packages:
+      msg = "😔 No premium coin packages are currently available. Please check back later or contact support."
+    else:
+      msg = "💎 **Premium Coin Packages** 💎\n\nHere is the list of our available packages:\n\n"
+      for i, pkg in enumerate(packages, 1):
+        msg += f"📦 **{i}.** `{pkg}`\n"
+      msg += "\n🛒 **To Buy:** Click the button below to contact the admin and state your desired package."
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("💬 Buy Now (Contact Admin)", url=support_url))
+    bot.send_message(message.chat.id, msg, parse_mode="Markdown", reply_markup=markup)
 
   elif text == '🎧 Support / Help':
+    support = bot_settings.get('support_contact', 'https://t.me/Helpbot655_bot')
+    
+    if support.startswith('@'):
+        support_url = f"https://t.me/{support.replace('@', '')}"
+    elif not support.startswith('http'):
+        support_url = f"https://t.me/{support}"
+    else:
+        support_url = support
+
     support_markup = types.InlineKeyboardMarkup()
-    support_markup.add(
-        types.InlineKeyboardButton(
-            '💬 Contact Admin', url=f'https://t.me/{ADMIN_USERNAME}'
-        )
-    )
+    support_markup.add(types.InlineKeyboardButton('💬 Contact Support', url=support_url))
+    
     bot.send_message(
         message.chat.id,
-        f'📞 **Customer Support**\n👤 Admin: `@{ADMIN_USERNAME}`',
+        f'📞 **Customer Support**\n\nIf you have any issues or want to buy coins, you can directly chat with us by clicking the button below.\n\n👤 Support: `{support}`',
         parse_mode='Markdown',
-        reply_markup=support_markup,
+        reply_markup=support_markup
     )
 
   elif text == '💰 My Profile':
@@ -575,8 +704,7 @@ def handle_text(message):
     if len(available_pool) == 0:
       bot.send_message(
           message.chat.id,
-          '❌ आपके लिए अभी कोई नया IG फॉलो टास्क उपलब्ध नहीं है। सभी टास्क'
-          ' पूरे हो चुके हैं!',
+          '❌ There are no new IG follow tasks available for you right now. All tasks are completed!',
       )
       return
 
@@ -593,14 +721,13 @@ def handle_text(message):
     markup.add(types.InlineKeyboardButton('🔗 Follow Profile', url=profile_url))
     markup.add(
         types.InlineKeyboardButton(
-            '✅ Task Complete किया (स्क्रीनशॉट भेजें)',
+            '✅ Task Completed (Send Screenshot)',
             callback_data='ask_screenshot',
         )
     )
     bot.send_message(
         message.chat.id,
-        f'📌 **इस नए अकाउंट को फॉलो करें:**\n👉 `{target_val}`\n\nफॉलो करने के'
-        ' बाद नीचे दिए गए बटन पर क्लिक करके **स्क्रीनशॉट** भेजें।',
+        f'📌 **Follow this new account:**\n👉 `{target_val}`\n\nAfter following, click the button below to send a **Screenshot**.',
         reply_markup=markup,
         parse_mode='Markdown',
     )
@@ -614,7 +741,7 @@ def handle_text(message):
     if len(available_pool) == 0:
       bot.send_message(
           message.chat.id,
-          '❌ आपके लिए अभी कोई नया IG लाइक टास्क उपलब्ध नहीं है।',
+          '❌ No new IG like tasks available right now.',
       )
       return
 
@@ -625,13 +752,13 @@ def handle_text(message):
     markup.add(types.InlineKeyboardButton('❤️ Like Post', url=item['target']))
     markup.add(
         types.InlineKeyboardButton(
-            '✅ Task Complete किया (स्क्रीनशॉट भेजें)',
+            '✅ Task Completed (Send Screenshot)',
             callback_data='ask_screenshot',
         )
     )
     bot.send_message(
         message.chat.id,
-        '📌 **इस नई पोस्ट को लाइक करें और स्क्रीनशॉट भेजें:**',
+        '📌 **Like this new post and send a screenshot:**',
         reply_markup=markup,
         parse_mode='Markdown',
     )
@@ -645,7 +772,7 @@ def handle_text(message):
     if len(available_pool) == 0:
       bot.send_message(
           message.chat.id,
-          '❌ आपके लिए अभी कोई नया YouTube टास्क उपलब्ध नहीं है।',
+          '❌ No new YouTube tasks available right now.',
       )
       return
 
@@ -658,13 +785,13 @@ def handle_text(message):
     )
     markup.add(
         types.InlineKeyboardButton(
-            '✅ Task Complete किया (स्क्रीनशॉट भेजें)',
+            '✅ Task Completed (Send Screenshot)',
             callback_data='ask_screenshot',
         )
     )
     bot.send_message(
         message.chat.id,
-        '📌 **इस नए चैनल को सब्सक्राइब करें और स्क्रीनशॉट भेजें:**',
+        '📌 **Subscribe to this new channel and send a screenshot:**',
         reply_markup=markup,
         parse_mode='Markdown',
     )
@@ -688,18 +815,18 @@ def handle_text(message):
     )
     bot.send_message(
         message.chat.id,
-        '🚀 आप क्या प्रमोट करना चाहते हैं?',
+        '🚀 What do you want to promote?',
         reply_markup=markup,
         parse_mode='Markdown',
     )
 
   else:
     bot.send_message(
-        message.chat.id, '❌ कृपया नीचे दिए गए मेनू विकल्पों का उपयोग करें।'
+        message.chat.id, '❌ Please use the menu options provided below.'
     )
 
 
-# ----------------- कॉलबैक हैंडलर -----------------
+# ----------------- Callback Handlers -----------------
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
   user_id = call.from_user.id
@@ -709,7 +836,7 @@ def callback_query(call):
     referrer_id = int(parts[2]) if len(parts) > 2 else 0
 
     if check_subscription(user_id):
-      bot.answer_callback_query(call.id, '✅ चैनल ज्वॉइन कर लिया गया है!')
+      bot.answer_callback_query(call.id, '✅ Channel joined successfully!')
       try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
       except:
@@ -734,9 +861,8 @@ def callback_query(call):
           try:
             bot.send_message(
                 referrer_id,
-                '🎉 **नया रेफरल!**\nआपके लिंक से एक यूजर ने बोट और चैनल जॉइन किया'
-                f" है। आपको **+{bot_settings['referral_bonus']} Coins** मिले"
-                ' हैं!',
+                '🎉 **New Referral!**\nA user joined the bot and channel using your link. You received'
+                f" **+{bot_settings['referral_bonus']} Coins**!",
                 parse_mode='Markdown',
             )
           except:
@@ -744,13 +870,13 @@ def callback_query(call):
 
       bot.send_message(
           call.message.chat.id,
-          '👋 स्वागत है!',
+          '👋 Welcome!',
           reply_markup=get_main_menu(user_id),
       )
     else:
       bot.answer_callback_query(
           call.id,
-          '❌ आपने अभी तक चैनल ज्वॉइन नहीं किया है!',
+          '❌ You have not joined the channel yet!',
           show_alert=True,
       )
 
@@ -759,17 +885,16 @@ def callback_query(call):
     current_target = user_state.get(f'temp_target_{user_id}')
     user_state[f'target_{user_id}'] = current_target
 
-    bot.answer_callback_query(call.id, 'कृपया स्क्रीनशॉट अपलोड करें!')
+    bot.answer_callback_query(call.id, 'Please upload the screenshot!')
     bot.send_message(
         call.message.chat.id,
-        '📸 कृपया टास्क पूरा करने का **स्क्रीनशॉट (Screenshot)** फोटो के'
-        ' रूप में यहाँ चैट में भेजें।',
+        '📸 Please send the **Screenshot** of the completed task here in the chat as a photo.',
     )
 
   elif call.data.startswith('app_') or call.data.startswith('rej_'):
     if user_id != ADMIN_ID:
       bot.answer_callback_query(
-          call.id, '❌ आप एडमिन नहीं हैं!', show_alert=True
+          call.id, '❌ You are not an admin!', show_alert=True
       )
       return
 
@@ -778,7 +903,7 @@ def callback_query(call):
     if req_id not in pending_approvals:
       bot.answer_callback_query(
           call.id,
-          '❌ यह रिक्वेस्ट पहले ही प्रोसेस की जा चुकी है!',
+          '❌ This request has already been processed!',
           show_alert=True,
       )
       return
@@ -808,7 +933,7 @@ def callback_query(call):
         users[target_user_id]['completed_tasks'].append(task_target)
 
       bot.answer_callback_query(
-          call.id, '✅ अप्रूव कर दिया गया और कॉइन्स जोड़ दिए गए!'
+          call.id, '✅ Approved and coins added!'
       )
       try:
         bot.edit_message_caption(
@@ -826,8 +951,8 @@ def callback_query(call):
       try:
         bot.send_message(
             target_user_id,
-            '🎉 **बधाई हो! आपका टास्क अप्रूव हो गया है।**\nआपके अकाउंट में'
-            f' **+{reward} Coins** जोड़ दिए गए हैं!',
+            '🎉 **Congratulations! Your task has been approved.**\n'
+            f'**+{reward} Coins** have been added to your account!',
             parse_mode='Markdown',
         )
       except:
@@ -835,7 +960,7 @@ def callback_query(call):
 
     elif action == 'rej':
       bot.answer_callback_query(
-          call.id, '❌ टास्क अस्वीकार (Reject) कर दिया गया!'
+          call.id, '❌ Task Rejected!'
       )
       try:
         bot.edit_message_caption(
@@ -850,8 +975,7 @@ def callback_query(call):
       try:
         bot.send_message(
             target_user_id,
-            '❌ **आपका टास्क स्क्रीनशॉट एडमिन द्वारा अस्वीकार (Reject) कर दिया'
-            ' गया है।** कृपया सही स्क्रीनशॉट दोबारा भेजें।',
+            '❌ **Your task screenshot was rejected by the admin.** Please send a correct screenshot again.',
             parse_mode='Markdown',
         )
       except:
@@ -862,7 +986,7 @@ def callback_query(call):
     bot.answer_callback_query(call.id)
     bot.send_message(
         call.message.chat.id,
-        '📸 **अपना Instagram Username या Profile Link भेजें:**\n\n'
+        '📸 **Send your Instagram Username or Profile Link:**\n\n'
         ': ``  ``',
         parse_mode='Markdown',
     )
@@ -872,7 +996,7 @@ def callback_query(call):
     bot.answer_callback_query(call.id)
     bot.send_message(
         call.message.chat.id,
-        '❤️ **अपनी Instagram Post या Reel का पूरा लिंक भेजें:**',
+        '❤️ **Send the full link to your Instagram Post or Reel:**',
         parse_mode='Markdown',
     )
 
@@ -881,14 +1005,33 @@ def callback_query(call):
     bot.answer_callback_query(call.id)
     bot.send_message(
         call.message.chat.id,
-        '▶️ **अपने YouTube Channel का पूरा लिंक भेजें:**',
+        '▶️ **Send the full link to your YouTube Channel:**',
         parse_mode='Markdown',
     )
+
+  elif call.data == 'custom_days':
+    if user_id not in temp_promotion_data:
+      bot.answer_callback_query(call.id, '❌ Something went wrong! Please enter the link again.', show_alert=True)
+      return
+
+    user_state[user_id] = 'WAITING_CUSTOM_DAYS_INPUT'
+    bot.answer_callback_query(call.id)
+    
+    cost_per_day = bot_settings['cost_per_hour'] * 24
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=f'📅 **Custom Days**\n\n'
+             f'Please type in the chat how many **days** you want to promote for (Example: 5, 10, 30).\n\n'
+             f'💡 1 Day charge: `{cost_per_day} Coins`',
+        parse_mode='Markdown'
+    )
+    return
 
   elif call.data.startswith('hrs_'):
     if user_id not in temp_promotion_data:
       bot.answer_callback_query(
-          call.id, '❌ कुछ गड़बड़ हो गई!', show_alert=True
+          call.id, '❌ Something went wrong!', show_alert=True
       )
       return
 
@@ -898,7 +1041,7 @@ def callback_query(call):
     if users[user_id]['balance'] < total_cost:
       bot.answer_callback_query(
           call.id,
-          f'❌ अपर्याप्त बैलेंस! {total_cost} Coins चाहिए।',
+          f'❌ Insufficient balance! {total_cost} Coins required.',
           show_alert=True,
       )
       user_state[user_id] = None
@@ -933,8 +1076,8 @@ def callback_query(call):
 
     bot.send_message(
         call.message.chat.id,
-        '✅ **सफलतापूर्वक प्रमोट हो गया!**\nआपके'
-        f' `{total_cost} Coins` काट लिए गए हैं।',
+        '✅ **Successfully Promoted!**\n'
+        f'`{total_cost} Coins` have been deducted.',
         reply_markup=get_main_menu(user_id),
         parse_mode='Markdown',
     )
