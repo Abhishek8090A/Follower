@@ -95,7 +95,10 @@ def get_main_menu(user_id):
 
 def get_admin_menu():
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-  markup.add(types.KeyboardButton('🔔 Pending Task Approvals'))
+  markup.add(
+      types.KeyboardButton('🔔 Pending Task Approvals'),
+      types.KeyboardButton('📢 Broadcast Message')
+  )
   markup.add(
       types.KeyboardButton('⚙️ Set Reward Coins'),
       types.KeyboardButton('⚙️ Set Cost Per Hour'),
@@ -269,6 +272,12 @@ def handle_text(message):
 
   current_state = user_state.get(user_id)
 
+  # --- Admin Cancel Action ---
+  if text == '❌ Cancel' and user_id == ADMIN_ID:
+    user_state[user_id] = None
+    bot.send_message(message.chat.id, '❌ Action cancelled.', reply_markup=get_admin_menu())
+    return
+
   # --- Custom Days Input Handler ---
   if current_state == 'WAITING_CUSTOM_DAYS_INPUT':
     try:
@@ -332,15 +341,50 @@ def handle_text(message):
   ]:
     entry = text.strip()
 
+    # ----------------- VALIDATION (लिंक और इनपुट की जांच) -----------------
     if current_state == 'WAITING_IG_FOLLOW':
-      entry = entry.strip().lstrip('@')
+      # अगर 'instagram.com' नहीं है और '@' से शुरू नहीं होता है
+      if 'instagram.com' not in entry and not entry.startswith('@'):
+        # "000" या खाली स्पेस जैसी स्पैम रोकने के लिए:
+        if len(entry) < 3 or ' ' in entry or entry.isnumeric():
+          bot.send_message(
+              message.chat.id, 
+              "❌ Invalid input! Please enter a valid Instagram Profile Link or Username (e.g., @your_username)."
+          )
+          return
+      
+      entry = entry.lstrip('@')
       if 'instagram.com' in entry:
-        entry = (
-            entry.split('instagram.com/')[-1]
-            .split('/')[0]
-            .split('?')[0]
-            .replace('@', '')
+        try:
+          entry = (
+              entry.split('instagram.com/')[-1]
+              .split('/')[0]
+              .split('?')[0]
+              .replace('@', '')
+          )
+        except:
+          pass
+          
+      if len(entry) == 0:
+        bot.send_message(message.chat.id, "❌ Invalid input. Please try again.")
+        return
+
+    elif current_state == 'WAITING_IG_LIKE':
+      if not (entry.startswith('http') and 'instagram.com' in entry):
+        bot.send_message(
+            message.chat.id, 
+            "❌ Invalid link! Please enter a valid Instagram Post or Reel Link (Must start with http and contain instagram.com)."
         )
+        return
+
+    elif current_state == 'WAITING_YT_SUB':
+      if not (entry.startswith('http') and ('youtube.com' in entry or 'youtu.be' in entry)):
+        bot.send_message(
+            message.chat.id, 
+            "❌ Invalid link! Please enter a valid YouTube Channel Link (Must start with http and contain youtube.com or youtu.be)."
+        )
+        return
+    # ----------------------------------------------------------------------
 
     temp_promotion_data[user_id] = {'type': current_state, 'target': entry}
     user_state[user_id] = 'WAITING_HOURS'
@@ -384,9 +428,30 @@ def handle_text(message):
       'SET_REFERRAL',
       'ADD_COINS_INPUT',
       'SET_SUPPORT_CONTACT',
-      'ADD_COIN_PACKAGE'
+      'ADD_COIN_PACKAGE',
+      'WAITING_BROADCAST_MESSAGE'
   ]:
-    if current_state == 'SET_REWARD':
+    if current_state == 'WAITING_BROADCAST_MESSAGE':
+      bot.send_message(message.chat.id, "⏳ Broadcasting message to all users... Please wait.")
+      success = 0
+      failed = 0
+      for uid in users.keys():
+        try:
+          bot.send_message(uid, f"📢 **Broadcast Message:**\n\n{text}", parse_mode='Markdown')
+          success += 1
+        except Exception as e:
+          failed += 1
+      
+      bot.send_message(
+          message.chat.id,
+          f"✅ **Broadcast Complete!**\n\n🟢 Successfully Sent: `{success}`\n🔴 Failed: `{failed}`",
+          parse_mode='Markdown',
+          reply_markup=get_admin_menu()
+      )
+      user_state[user_id] = None
+      return
+
+    elif current_state == 'SET_REWARD':
       try:
         bot_settings['reward_coins'] = int(text.strip())
         bot.send_message(
@@ -507,13 +572,29 @@ def handle_text(message):
     )
     return
 
+  elif text == '📢 Broadcast Message' and user_id == ADMIN_ID:
+    user_state[user_id] = 'WAITING_BROADCAST_MESSAGE'
+    cancel_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    cancel_markup.add(types.KeyboardButton('❌ Cancel'))
+    bot.send_message(
+        message.chat.id,
+        "📝 **Send the message you want to broadcast to all users.**\n\n(Type your message and send it here)",
+        parse_mode='Markdown',
+        reply_markup=cancel_markup
+    )
+    return
+
   elif text == '🔔 Pending Task Approvals' and user_id == ADMIN_ID:
     if not pending_approvals:
       bot.send_message(
           message.chat.id, '📭 There are no pending screenshots for approval at the moment.'
       )
     else:
-      msg = f'📋 **Total pending requests:** `{len(pending_approvals)}`\n\n'
+      bot.send_message(
+          message.chat.id,
+          f'📋 **Total pending requests:** `{len(pending_approvals)}`',
+          parse_mode='Markdown',
+      )
       count = 1
       for req_id, data in pending_approvals.items():
         username = data.get('username', 'No Username')
@@ -521,17 +602,23 @@ def handle_text(message):
         target = data.get('target', 'None')
         reward = data.get('reward', 0)
 
-        msg += f"**{count}.** 👤 **User:** @{username} (ID: `{u_id}`)\n"
+        msg = f"**{count}.** 👤 **User:** @{username} (ID: `{u_id}`)\n"
         msg += f"🎯 **Target:** `{target}`\n"
-        msg += f"💰 **Reward:** `{reward} Coins`\n"
-        msg += "----------------------------------------\n"
-        count += 1
+        msg += f"💰 **Reward:** `{reward} Coins`"
 
-      bot.send_message(
-          message.chat.id,
-          msg,
-          parse_mode='Markdown',
-      )
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton('✅ Approve', callback_data=f'app_{req_id}'),
+            types.InlineKeyboardButton('❌ Reject', callback_data=f'rej_{req_id}')
+        )
+
+        bot.send_message(
+            message.chat.id,
+            msg,
+            parse_mode='Markdown',
+            reply_markup=markup
+        )
+        count += 1
     return
 
   elif text == '🏠 Back to Main Menu' and user_id == ADMIN_ID:
@@ -950,15 +1037,20 @@ def callback_query(call):
           call.id, '✅ Approved and coins added!'
       )
       try:
-        bot.edit_message_caption(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            caption=(
-                f'{call.message.caption}\n\n🟢 **Status: APPROVED (+{reward}'
-                ' Coins added)**'
-            ),
-            parse_mode='Markdown',
-        )
+        if call.message.content_type == 'photo':
+            bot.edit_message_caption(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                caption=f'{call.message.caption}\n\n🟢 **Status: APPROVED (+{reward} Coins added)**',
+                parse_mode='Markdown',
+            )
+        else:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=f'{call.message.text}\n\n🟢 **Status: APPROVED (+{reward} Coins added)**',
+                parse_mode='Markdown',
+            )
       except:
         pass
 
@@ -977,12 +1069,20 @@ def callback_query(call):
           call.id, '❌ Task Rejected!'
       )
       try:
-        bot.edit_message_caption(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            caption=f'{call.message.caption}\n\n🔴 **Status: REJECTED**',
-            parse_mode='Markdown',
-        )
+        if call.message.content_type == 'photo':
+            bot.edit_message_caption(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                caption=f'{call.message.caption}\n\n🔴 **Status: REJECTED**',
+                parse_mode='Markdown',
+            )
+        else:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=f'{call.message.text}\n\n🔴 **Status: REJECTED**',
+                parse_mode='Markdown',
+            )
       except:
         pass
 
