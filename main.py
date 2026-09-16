@@ -513,9 +513,23 @@ def handle_text(message):
           message.chat.id, '📭 There are no pending screenshots for approval at the moment.'
       )
     else:
+      msg = f'📋 **Total pending requests:** `{len(pending_approvals)}`\n\n'
+      count = 1
+      for req_id, data in pending_approvals.items():
+        username = data.get('username', 'No Username')
+        u_id = data.get('user_id', 'Unknown')
+        target = data.get('target', 'None')
+        reward = data.get('reward', 0)
+
+        msg += f"**{count}.** 👤 **User:** @{username} (ID: `{u_id}`)\n"
+        msg += f"🎯 **Target:** `{target}`\n"
+        msg += f"💰 **Reward:** `{reward} Coins`\n"
+        msg += "----------------------------------------\n"
+        count += 1
+
       bot.send_message(
           message.chat.id,
-          f'📋 Total pending requests: `{len(pending_approvals)}`',
+          msg,
           parse_mode='Markdown',
       )
     return
