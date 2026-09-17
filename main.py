@@ -76,38 +76,32 @@ def check_subscription(user_id):
 
 # ----------------- Keyboard Generators -----------------
 def get_main_menu(user_id):
-  markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+  markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   
-  # सबसे ऊपर आकर्षक प्रमोट बटन रखा गया है ताकि यूजर को साफ़-साफ़ दिखे
+  # 1. सबसे ऊपर प्रमोट बटन
   markup.add(types.KeyboardButton('🚀 ➕ Add & Promote Your Link ➕ 🚀'))
   
-  # बाकी टास्क और फीचर्स के लिए 2-row layout
-  row2 = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+  # 2. अलग-अलग प्लेटफॉर्म की मुख्य श्रेणियाँ (Categories)
   markup.add(
-      types.KeyboardButton('📸 IG Follow Tasks'),
-      types.KeyboardButton('❤️ IG Like Tasks'),
+      types.KeyboardButton('📸 Instagram Tasks'),
+      types.KeyboardButton('▶️ YouTube Tasks'),
   )
   markup.add(
-      types.KeyboardButton('▶️ YT Sub Tasks'),
-      types.KeyboardButton('🎥 YT Video Tasks'),
+      types.KeyboardButton('👍 Facebook Tasks'),
+      types.KeyboardButton('📢 Telegram Tasks'),
   )
   markup.add(
-      types.KeyboardButton('📢 TG Channel Tasks'),
-      types.KeyboardButton('👍 FB Post Tasks'),
-  )
-  markup.add(
-      types.KeyboardButton('🎞 FB Reel Tasks'),
       types.KeyboardButton('👻 Snapchat Tasks'),
-  )
-  markup.add(
       types.KeyboardButton('🎁 Daily Bonus'),
-      types.KeyboardButton('👥 Invite & Earn (Referral)'),
   )
   markup.add(
+      types.KeyboardButton('👥 Invite & Earn (Referral)'),
       types.KeyboardButton('💰 My Profile'),
-      types.KeyboardButton('💳 Buy Coins (Premium)'),
   )
-  markup.add(types.KeyboardButton('🎧 Support / Help'))
+  markup.add(
+      types.KeyboardButton('💳 Buy Coins (Premium)'),
+      types.KeyboardButton('🎧 Support / Help')
+  )
 
   if user_id == ADMIN_ID:
     markup.add(types.KeyboardButton('👑 Admin Panel'))
@@ -212,7 +206,7 @@ def start_bot(message):
       '🔥 **Welcome to the Ultimate Promotion Bot!** 🔥\n\n'
       '💡 **How it works:**\n'
       '• Complete tasks to earn **Coins**.\n'
-      '• Click on **"🚀 ➕ Add & Promote Your Link"** button below to promote your Social Media / Channels!\n\n'
+      '• Click on **"🚀 ➕ Add & Promote Your Link ➕ 🚀"** button below to promote your Social Media / Channels!\n\n'
       '👇 **Choose an option from the menu:**'
   )
   bot.send_message(
@@ -828,77 +822,48 @@ def handle_text(message):
         parse_mode='Markdown',
     )
 
-  # ====================== TASKS HANDLING ======================
+  # ====================== CATEGORY MENUS ======================
 
-  elif text == '📸 IG Follow Tasks':
-    completed = users[user_id].get('completed_tasks', [])
-    available_pool = [item for item in ig_follow_pool if item['target'] not in completed]
-
-    if len(available_pool) == 0:
-      bot.send_message(message.chat.id, '❌ There are no new IG follow tasks available for you right now.')
-      return
-
-    item = random.choice(available_pool)
-    user_state[f'temp_target_{user_id}'] = item['target']
-
-    target_val = item['target']
-    if target_val.startswith('http'):
-      profile_url = target_val
-    else:
-      profile_url = f'https://instagram.com/{target_val}'
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('🔗 Follow Profile', url=profile_url))
-    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
-    
+  elif text == '📸 Instagram Tasks':
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        types.InlineKeyboardButton('📸 IG Follow Tasks', callback_data='task_ig_follow'),
+        types.InlineKeyboardButton('❤️ IG Like Tasks', callback_data='task_ig_like')
+    )
     bot.send_message(
         message.chat.id,
-        f'📌 **Follow this new account:**\n👉 `{target_val}`\n\nAfter following, click the button below to send a **Screenshot**.',
+        '📸 **Instagram Tasks Menu**\n\nSelect a task type below to earn coins:',
         reply_markup=markup,
-        parse_mode='Markdown',
+        parse_mode='Markdown'
     )
 
-  elif text == '❤️ IG Like Tasks':
-    completed = users[user_id].get('completed_tasks', [])
-    available_pool = [item for item in ig_like_pool if item['target'] not in completed]
-
-    if len(available_pool) == 0:
-      bot.send_message(message.chat.id, '❌ No new IG like tasks available right now.')
-      return
-
-    item = random.choice(available_pool)
-    user_state[f'temp_target_{user_id}'] = item['target']
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('❤️ Like Post', url=item['target']))
-    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
-    
+  elif text == '▶️ YouTube Tasks':
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        types.InlineKeyboardButton('▶️ YT Sub Tasks', callback_data='task_yt_sub'),
+        types.InlineKeyboardButton('🎥 YT Video Tasks', callback_data='task_yt_video')
+    )
     bot.send_message(
-        message.chat.id, '📌 **Like this new post and send a screenshot:**',
-        reply_markup=markup, parse_mode='Markdown'
+        message.chat.id,
+        '▶️ **YouTube Tasks Menu**\n\nSelect a task type below to earn coins:',
+        reply_markup=markup,
+        parse_mode='Markdown'
     )
 
-  elif text == '▶️ YT Sub Tasks':
-    completed = users[user_id].get('completed_tasks', [])
-    available_pool = [item for item in yt_sub_pool if item['target'] not in completed]
-
-    if len(available_pool) == 0:
-      bot.send_message(message.chat.id, '❌ No new YouTube tasks available right now.')
-      return
-
-    item = random.choice(available_pool)
-    user_state[f'temp_target_{user_id}'] = item['target']
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('▶️ Subscribe Channel', url=item['target']))
-    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
-    
+  elif text == '👍 Facebook Tasks':
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        types.InlineKeyboardButton('👍 FB Post Tasks', callback_data='task_fb_post'),
+        types.InlineKeyboardButton('🎞 FB Reel Tasks', callback_data='task_fb_reel')
+    )
     bot.send_message(
-        message.chat.id, '📌 **Subscribe to this new channel and send a screenshot:**',
-        reply_markup=markup, parse_mode='Markdown'
+        message.chat.id,
+        '👍 **Facebook Tasks Menu**\n\nSelect a task type below to earn coins:',
+        reply_markup=markup,
+        parse_mode='Markdown'
     )
 
-  elif text == '📢 TG Channel Tasks':
+  elif text == '📢 Telegram Tasks':
     completed = users[user_id].get('completed_tasks', [])
     available_pool = [item for item in tg_channel_pool if item['target'] not in completed]
 
@@ -921,66 +886,6 @@ def handle_text(message):
     
     bot.send_message(
         message.chat.id, '📌 **Join this Telegram channel and send a screenshot:**',
-        reply_markup=markup, parse_mode='Markdown'
-    )
-
-  elif text == '👍 FB Post Tasks':
-    completed = users[user_id].get('completed_tasks', [])
-    available_pool = [item for item in fb_post_pool if item['target'] not in completed]
-
-    if len(available_pool) == 0:
-      bot.send_message(message.chat.id, '❌ No new Facebook Post tasks available right now.')
-      return
-
-    item = random.choice(available_pool)
-    user_state[f'temp_target_{user_id}'] = item['target']
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('👍 Like FB Post', url=item['target']))
-    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
-    
-    bot.send_message(
-        message.chat.id, '📌 **Like this Facebook post and send a screenshot:**',
-        reply_markup=markup, parse_mode='Markdown'
-    )
-
-  elif text == '🎞 FB Reel Tasks':
-    completed = users[user_id].get('completed_tasks', [])
-    available_pool = [item for item in fb_reel_pool if item['target'] not in completed]
-
-    if len(available_pool) == 0:
-      bot.send_message(message.chat.id, '❌ No new Facebook Reel tasks available right now.')
-      return
-
-    item = random.choice(available_pool)
-    user_state[f'temp_target_{user_id}'] = item['target']
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('🎞 Watch/Like Reel', url=item['target']))
-    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
-    
-    bot.send_message(
-        message.chat.id, '📌 **Watch/Like this Facebook Reel and send a screenshot:**',
-        reply_markup=markup, parse_mode='Markdown'
-    )
-
-  elif text == '🎥 YT Video Tasks':
-    completed = users[user_id].get('completed_tasks', [])
-    available_pool = [item for item in yt_video_pool if item['target'] not in completed]
-
-    if len(available_pool) == 0:
-      bot.send_message(message.chat.id, '❌ No new YouTube Video tasks available right now.')
-      return
-
-    item = random.choice(available_pool)
-    user_state[f'temp_target_{user_id}'] = item['target']
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('🎥 Watch Video', url=item['target']))
-    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
-    
-    bot.send_message(
-        message.chat.id, '📌 **Watch/Like this YouTube Video and send a screenshot:**',
         reply_markup=markup, parse_mode='Markdown'
     )
 
@@ -1096,6 +1001,93 @@ def callback_query(call):
         call.message.chat.id,
         '📸 Please send the **Screenshot** of the completed task here in the chat as a photo.',
     )
+
+  # ====================== TASK CATEGORY CALLBACKS ======================
+  elif call.data == 'task_ig_follow':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in ig_follow_pool if item['target'] not in completed]
+    if len(available_pool) == 0:
+      bot.answer_callback_query(call.id, '❌ No IG follow tasks available right now.', show_alert=True)
+      return
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    target_val = item['target']
+    profile_url = target_val if target_val.startswith('http') else f'https://instagram.com/{target_val}'
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('🔗 Follow Profile', url=profile_url))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, f'📌 **Follow this new account:**\n👉 `{target_val}`\n\nAfter following, click below to send a **Screenshot**.', parse_mode='Markdown', reply_markup=markup)
+
+  elif call.data == 'task_ig_like':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in ig_like_pool if item['target'] not in completed]
+    if len(available_pool) == 0:
+      bot.answer_callback_query(call.id, '❌ No IG like tasks available right now.', show_alert=True)
+      return
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('❤️ Like Post', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '📌 **Like this new post and send a screenshot:**', parse_mode='Markdown', reply_markup=markup)
+
+  elif call.data == 'task_yt_sub':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in yt_sub_pool if item['target'] not in completed]
+    if len(available_pool) == 0:
+      bot.answer_callback_query(call.id, '❌ No YouTube tasks available right now.', show_alert=True)
+      return
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('▶️ Subscribe Channel', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '📌 **Subscribe to this new channel and send a screenshot:**', parse_mode='Markdown', reply_markup=markup)
+
+  elif call.data == 'task_yt_video':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in yt_video_pool if item['target'] not in completed]
+    if len(available_pool) == 0:
+      bot.answer_callback_query(call.id, '❌ No YouTube video tasks available right now.', show_alert=True)
+      return
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('🎥 Watch Video', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '📌 **Watch/Like this YouTube Video and send a screenshot:**', parse_mode='Markdown', reply_markup=markup)
+
+  elif call.data == 'task_fb_post':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in fb_post_pool if item['target'] not in completed]
+    if len(available_pool) == 0:
+      bot.answer_callback_query(call.id, '❌ No Facebook Post tasks available right now.', show_alert=True)
+      return
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('👍 Like FB Post', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '📌 **Like this Facebook post and send a screenshot:**', parse_mode='Markdown', reply_markup=markup)
+
+  elif call.data == 'task_fb_reel':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in fb_reel_pool if item['target'] not in completed]
+    if len(available_pool) == 0:
+      bot.answer_callback_query(call.id, '❌ No Facebook Reel tasks available right now.', show_alert=True)
+      return
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('🎞 Watch/Like Reel', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '📌 **Watch/Like this Facebook Reel and send a screenshot:**', parse_mode='Markdown', reply_markup=markup)
 
   elif call.data.startswith('app_') or call.data.startswith('rej_'):
     if user_id != ADMIN_ID:
@@ -1317,7 +1309,7 @@ def callback_query(call):
       yt_sub_pool.append(pool_item)
     elif promo_info['type'] == 'WAITING_TG_CHANNEL':
       tg_channel_pool.append(pool_item)
-    elif promo_info['type'] == 'WAIT_FB_POST' or promo_info['type'] == 'WAITING_FB_POST':
+    elif promo_info['type'] == 'WAITING_FB_POST':
       fb_post_pool.append(pool_item)
     elif promo_info['type'] == 'WAITING_FB_REEL':
       fb_reel_pool.append(pool_item)
