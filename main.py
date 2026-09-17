@@ -30,9 +30,15 @@ bot_settings = {
     'coin_packages': [],  # VIP Packages list
 }
 
+# ----------------- Promotion Pools -----------------
 ig_follow_pool = []
 ig_like_pool = []
 yt_sub_pool = []
+tg_channel_pool = []   
+fb_post_pool = []      
+fb_reel_pool = []      
+yt_video_pool = []     
+snapchat_pool = []     # New Snapchat Pool
 
 
 # ----------------- Auto-Cleanup Background Worker -----------------
@@ -40,15 +46,17 @@ def cleanup_expired_promotions():
   while True:
     current_time = time.time()
     global ig_follow_pool, ig_like_pool, yt_sub_pool
-    ig_follow_pool = [
-        item for item in ig_follow_pool if item['expires_at'] > current_time
-    ]
-    ig_like_pool = [
-        item for item in ig_like_pool if item['expires_at'] > current_time
-    ]
-    yt_sub_pool = [
-        item for item in yt_sub_pool if item['expires_at'] > current_time
-    ]
+    global tg_channel_pool, fb_post_pool, fb_reel_pool, yt_video_pool, snapchat_pool
+    
+    ig_follow_pool = [item for item in ig_follow_pool if item['expires_at'] > current_time]
+    ig_like_pool = [item for item in ig_like_pool if item['expires_at'] > current_time]
+    yt_sub_pool = [item for item in yt_sub_pool if item['expires_at'] > current_time]
+    tg_channel_pool = [item for item in tg_channel_pool if item['expires_at'] > current_time]
+    fb_post_pool = [item for item in fb_post_pool if item['expires_at'] > current_time]
+    fb_reel_pool = [item for item in fb_reel_pool if item['expires_at'] > current_time]
+    yt_video_pool = [item for item in yt_video_pool if item['expires_at'] > current_time]
+    snapchat_pool = [item for item in snapchat_pool if item['expires_at'] > current_time]
+    
     time.sleep(60)
 
 
@@ -75,17 +83,28 @@ def get_main_menu(user_id):
   )
   markup.add(
       types.KeyboardButton('▶️ YT Sub Tasks'),
+      types.KeyboardButton('🎥 YT Video Tasks'),
+  )
+  markup.add(
+      types.KeyboardButton('📢 TG Channel Tasks'),
+      types.KeyboardButton('👍 FB Post Tasks'),
+  )
+  markup.add(
+      types.KeyboardButton('🎞 FB Reel Tasks'),
+      types.KeyboardButton('👻 Snapchat Tasks'), # New Snapchat Button
+  )
+  markup.add(
       types.KeyboardButton('➕ Promote Link'),
-  )
-  markup.add(
       types.KeyboardButton('🎁 Daily Bonus'),
-      types.KeyboardButton('👥 Invite & Earn (Referral)'),
   )
   markup.add(
+      types.KeyboardButton('👥 Invite & Earn (Referral)'),
       types.KeyboardButton('💰 My Profile'),
-      types.KeyboardButton('💳 Buy Coins (Premium)'),
   )
-  markup.add(types.KeyboardButton('🎧 Support / Help'))
+  markup.add(
+      types.KeyboardButton('💳 Buy Coins (Premium)'),
+      types.KeyboardButton('🎧 Support / Help')
+  )
 
   if user_id == ADMIN_ID:
     markup.add(types.KeyboardButton('👑 Admin Panel'))
@@ -316,6 +335,16 @@ def handle_text(message):
         ig_like_pool.append(pool_item)
       elif promo_info['type'] == 'WAITING_YT_SUB':
         yt_sub_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_TG_CHANNEL':
+        tg_channel_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_FB_POST':
+        fb_post_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_FB_REEL':
+        fb_reel_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_YT_VIDEO':
+        yt_video_pool.append(pool_item)
+      elif promo_info['type'] == 'WAITING_SNAPCHAT':
+        snapchat_pool.append(pool_item)
 
       users[user_id]['promotions'].append(pool_item)
       user_state[user_id] = None
@@ -335,55 +364,63 @@ def handle_text(message):
 
   # 1. Promote Input States
   if current_state in [
-      'WAITING_IG_FOLLOW',
-      'WAITING_IG_LIKE',
-      'WAITING_YT_SUB',
+      'WAITING_IG_FOLLOW', 'WAITING_IG_LIKE', 'WAITING_YT_SUB',
+      'WAITING_TG_CHANNEL', 'WAITING_FB_POST', 'WAITING_FB_REEL', 
+      'WAITING_YT_VIDEO', 'WAITING_SNAPCHAT'
   ]:
     entry = text.strip()
 
-    # ----------------- VALIDATION (लिंक और इनपुट की जांच) -----------------
+    # ----------------- VALIDATION -----------------
     if current_state == 'WAITING_IG_FOLLOW':
-      # अगर 'instagram.com' नहीं है और '@' से शुरू नहीं होता है
       if 'instagram.com' not in entry and not entry.startswith('@'):
-        # "000" या खाली स्पेस जैसी स्पैम रोकने के लिए:
         if len(entry) < 3 or ' ' in entry or entry.isnumeric():
-          bot.send_message(
-              message.chat.id, 
-              "❌ Invalid input! Please enter a valid Instagram Profile Link or Username (e.g., @your_username)."
-          )
+          bot.send_message(message.chat.id, "❌ Invalid input! Please enter a valid Instagram Profile Link or Username.")
           return
-      
       entry = entry.lstrip('@')
       if 'instagram.com' in entry:
         try:
-          entry = (
-              entry.split('instagram.com/')[-1]
-              .split('/')[0]
-              .split('?')[0]
-              .replace('@', '')
-          )
+          entry = entry.split('instagram.com/')[-1].split('/')[0].split('?')[0].replace('@', '')
         except:
           pass
-          
       if len(entry) == 0:
         bot.send_message(message.chat.id, "❌ Invalid input. Please try again.")
         return
 
     elif current_state == 'WAITING_IG_LIKE':
       if not (entry.startswith('http') and 'instagram.com' in entry):
-        bot.send_message(
-            message.chat.id, 
-            "❌ Invalid link! Please enter a valid Instagram Post or Reel Link (Must start with http and contain instagram.com)."
-        )
+        bot.send_message(message.chat.id, "❌ Invalid link! Please enter a valid Instagram Post or Reel Link.")
         return
 
     elif current_state == 'WAITING_YT_SUB':
       if not (entry.startswith('http') and ('youtube.com' in entry or 'youtu.be' in entry)):
-        bot.send_message(
-            message.chat.id, 
-            "❌ Invalid link! Please enter a valid YouTube Channel Link (Must start with http and contain youtube.com or youtu.be)."
-        )
+        bot.send_message(message.chat.id, "❌ Invalid link! Please enter a valid YouTube Channel Link.")
         return
+
+    elif current_state == 'WAITING_TG_CHANNEL':
+      if not ('t.me/' in entry or entry.startswith('@')):
+        bot.send_message(message.chat.id, "❌ Invalid input! Please enter a valid Telegram Channel Link or Username (e.g. @channel or https://t.me/channel).")
+        return
+
+    elif current_state == 'WAITING_FB_POST':
+      if not (entry.startswith('http') and 'facebook.com' in entry):
+        bot.send_message(message.chat.id, "❌ Invalid link! Please enter a valid Facebook Post Link.")
+        return
+
+    elif current_state == 'WAITING_FB_REEL':
+      if not (entry.startswith('http') and 'facebook.com' in entry):
+        bot.send_message(message.chat.id, "❌ Invalid link! Please enter a valid Facebook Reel Link.")
+        return
+
+    elif current_state == 'WAITING_YT_VIDEO':
+      if not (entry.startswith('http') and ('youtube.com' in entry or 'youtu.be' in entry)):
+        bot.send_message(message.chat.id, "❌ Invalid link! Please enter a valid YouTube Video Link.")
+        return
+
+    elif current_state == 'WAITING_SNAPCHAT':
+      if 'snapchat.com' not in entry and not entry.startswith('@') and len(entry) < 3:
+        bot.send_message(message.chat.id, "❌ Invalid input! Please enter a valid Snapchat Profile Link or Username.")
+        return
+      entry = entry.lstrip('@')
     # ----------------------------------------------------------------------
 
     temp_promotion_data[user_id] = {'type': current_state, 'target': entry}
@@ -412,7 +449,7 @@ def handle_text(message):
     
     bot.send_message(
         message.chat.id,
-        f'⏱️ **Username/Link saved:** `{entry}`\n\n'
+        f'⏳ **Username/Link saved:** `{entry}`\n\n'
         f'How long do you want to keep it live?\n'
         f'Rate: `{cost_1h} Coins` per hour | `{cost_1d} Coins` per day',
         parse_mode='Markdown',
@@ -422,14 +459,8 @@ def handle_text(message):
 
   # 2. Admin Panel States
   if user_id == ADMIN_ID and current_state in [
-      'SET_REWARD',
-      'SET_COST',
-      'SET_BONUS',
-      'SET_REFERRAL',
-      'ADD_COINS_INPUT',
-      'SET_SUPPORT_CONTACT',
-      'ADD_COIN_PACKAGE',
-      'WAITING_BROADCAST_MESSAGE'
+      'SET_REWARD', 'SET_COST', 'SET_BONUS', 'SET_REFERRAL',
+      'ADD_COINS_INPUT', 'SET_SUPPORT_CONTACT', 'ADD_COIN_PACKAGE', 'WAITING_BROADCAST_MESSAGE'
   ]:
     if current_state == 'WAITING_BROADCAST_MESSAGE':
       bot.send_message(message.chat.id, "⏳ Broadcasting message to all users... Please wait.")
@@ -511,12 +542,8 @@ def handle_text(message):
           coins_to_add = int(parts[1])
           if target_user_id not in users:
             users[target_user_id] = {
-                'balance': 0,
-                'promotions': [],
-                'last_bonus_time': 0,
-                'completed_tasks': [],
-                'referred_by': None,
-                'referral_count': 0,
+                'balance': 0, 'promotions': [], 'last_bonus_time': 0,
+                'completed_tasks': [], 'referred_by': None, 'referral_count': 0,
             }
           users[target_user_id]['balance'] += coins_to_add
           bot.send_message(
@@ -796,17 +823,14 @@ def handle_text(message):
         parse_mode='Markdown',
     )
 
+  # ====================== TASKS HANDLING ======================
+
   elif text == '📸 IG Follow Tasks':
     completed = users[user_id].get('completed_tasks', [])
-    available_pool = [
-        item for item in ig_follow_pool if item['target'] not in completed
-    ]
+    available_pool = [item for item in ig_follow_pool if item['target'] not in completed]
 
     if len(available_pool) == 0:
-      bot.send_message(
-          message.chat.id,
-          '❌ There are no new IG follow tasks available for you right now. All tasks are completed!',
-      )
+      bot.send_message(message.chat.id, '❌ There are no new IG follow tasks available for you right now.')
       return
 
     item = random.choice(available_pool)
@@ -820,12 +844,8 @@ def handle_text(message):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('🔗 Follow Profile', url=profile_url))
-    markup.add(
-        types.InlineKeyboardButton(
-            '✅ Task Completed (Send Screenshot)',
-            callback_data='ask_screenshot',
-        )
-    )
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
     bot.send_message(
         message.chat.id,
         f'📌 **Follow this new account:**\n👉 `{target_val}`\n\nAfter following, click the button below to send a **Screenshot**.',
@@ -835,15 +855,10 @@ def handle_text(message):
 
   elif text == '❤️ IG Like Tasks':
     completed = users[user_id].get('completed_tasks', [])
-    available_pool = [
-        item for item in ig_like_pool if item['target'] not in completed
-    ]
+    available_pool = [item for item in ig_like_pool if item['target'] not in completed]
 
     if len(available_pool) == 0:
-      bot.send_message(
-          message.chat.id,
-          '❌ No new IG like tasks available right now.',
-      )
+      bot.send_message(message.chat.id, '❌ No new IG like tasks available right now.')
       return
 
     item = random.choice(available_pool)
@@ -851,69 +866,166 @@ def handle_text(message):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('❤️ Like Post', url=item['target']))
-    markup.add(
-        types.InlineKeyboardButton(
-            '✅ Task Completed (Send Screenshot)',
-            callback_data='ask_screenshot',
-        )
-    )
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
     bot.send_message(
-        message.chat.id,
-        '📌 **Like this new post and send a screenshot:**',
-        reply_markup=markup,
-        parse_mode='Markdown',
+        message.chat.id, '📌 **Like this new post and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
     )
 
   elif text == '▶️ YT Sub Tasks':
     completed = users[user_id].get('completed_tasks', [])
-    available_pool = [
-        item for item in yt_sub_pool if item['target'] not in completed
-    ]
+    available_pool = [item for item in yt_sub_pool if item['target'] not in completed]
 
     if len(available_pool) == 0:
-      bot.send_message(
-          message.chat.id,
-          '❌ No new YouTube tasks available right now.',
-      )
+      bot.send_message(message.chat.id, '❌ No new YouTube tasks available right now.')
       return
 
     item = random.choice(available_pool)
     user_state[f'temp_target_{user_id}'] = item['target']
 
     markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton('▶️ Subscribe Channel', url=item['target'])
-    )
-    markup.add(
-        types.InlineKeyboardButton(
-            '✅ Task Completed (Send Screenshot)',
-            callback_data='ask_screenshot',
-        )
-    )
+    markup.add(types.InlineKeyboardButton('▶️ Subscribe Channel', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
     bot.send_message(
-        message.chat.id,
-        '📌 **Subscribe to this new channel and send a screenshot:**',
-        reply_markup=markup,
-        parse_mode='Markdown',
+        message.chat.id, '📌 **Subscribe to this new channel and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
     )
 
-  elif text == '➕ Promote Link':
+  elif text == '📢 TG Channel Tasks':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in tg_channel_pool if item['target'] not in completed]
+
+    if len(available_pool) == 0:
+      bot.send_message(message.chat.id, '❌ No new Telegram channel tasks available right now.')
+      return
+
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    
+    target_val = item['target']
+    if target_val.startswith('@'):
+      channel_url = f"https://t.me/{target_val.replace('@', '')}"
+    else:
+      channel_url = target_val
+
     markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('📢 Join Channel', url=channel_url))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
+    bot.send_message(
+        message.chat.id, '📌 **Join this Telegram channel and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
+    )
+
+  elif text == '👍 FB Post Tasks':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in fb_post_pool if item['target'] not in completed]
+
+    if len(available_pool) == 0:
+      bot.send_message(message.chat.id, '❌ No new Facebook Post tasks available right now.')
+      return
+
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('👍 Like FB Post', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
+    bot.send_message(
+        message.chat.id, '📌 **Like this Facebook post and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
+    )
+
+  elif text == '🎞 FB Reel Tasks':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in fb_reel_pool if item['target'] not in completed]
+
+    if len(available_pool) == 0:
+      bot.send_message(message.chat.id, '❌ No new Facebook Reel tasks available right now.')
+      return
+
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('🎞 Watch/Like Reel', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
+    bot.send_message(
+        message.chat.id, '📌 **Watch/Like this Facebook Reel and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
+    )
+
+  elif text == '🎥 YT Video Tasks':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in yt_video_pool if item['target'] not in completed]
+
+    if len(available_pool) == 0:
+      bot.send_message(message.chat.id, '❌ No new YouTube Video tasks available right now.')
+      return
+
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('🎥 Watch Video', url=item['target']))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
+    bot.send_message(
+        message.chat.id, '📌 **Watch/Like this YouTube Video and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
+    )
+
+  # ---------- NEW SNAPCHAT TASK HANDLER ----------
+  elif text == '👻 Snapchat Tasks':
+    completed = users[user_id].get('completed_tasks', [])
+    available_pool = [item for item in snapchat_pool if item['target'] not in completed]
+
+    if len(available_pool) == 0:
+      bot.send_message(message.chat.id, '❌ No new Snapchat tasks available right now.')
+      return
+
+    item = random.choice(available_pool)
+    user_state[f'temp_target_{user_id}'] = item['target']
+    
+    target_val = item['target']
+    if target_val.startswith('http'):
+      snap_url = target_val
+    else:
+      snap_url = f'https://www.snapchat.com/add/{target_val}'
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('👻 Add / View Snapchat', url=snap_url))
+    markup.add(types.InlineKeyboardButton('✅ Task Completed (Send Screenshot)', callback_data='ask_screenshot'))
+    
+    bot.send_message(
+        message.chat.id, '📌 **Add this user or view their Snapchat and send a screenshot:**',
+        reply_markup=markup, parse_mode='Markdown'
+    )
+  # -----------------------------------------------
+
+  elif text == '➕ Promote Link':
+    markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton(
-            '📸 IG Follow (Username)', callback_data='add_ig_follow'
-        )
+        types.InlineKeyboardButton('📸 IG Follow', callback_data='add_ig_follow'),
+        types.InlineKeyboardButton('❤️ IG Like/Reel', callback_data='add_ig_like')
     )
     markup.add(
-        types.InlineKeyboardButton(
-            '❤️ IG Like/Reel (Post Link)', callback_data='add_ig_like'
-        )
+        types.InlineKeyboardButton('▶️ YT Sub', callback_data='add_yt_sub'),
+        types.InlineKeyboardButton('🎥 YT Video', callback_data='add_yt_video')
     )
     markup.add(
-        types.InlineKeyboardButton(
-            '▶️ YT Sub (Channel Link)', callback_data='add_yt_sub'
-        )
+        types.InlineKeyboardButton('📢 TG Channel', callback_data='add_tg_channel'),
+        types.InlineKeyboardButton('👍 FB Post', callback_data='add_fb_post')
     )
+    markup.add(
+        types.InlineKeyboardButton('🎞 FB Reel', callback_data='add_fb_reel'),
+        types.InlineKeyboardButton('👻 Snapchat', callback_data='add_snapchat') # New Snapchat Button
+    )
+
     bot.send_message(
         message.chat.id,
         '🚀 What do you want to promote?',
@@ -945,19 +1057,13 @@ def callback_query(call):
 
       if user_id not in users:
         users[user_id] = {
-            'balance': 0,
-            'promotions': [],
-            'last_bonus_time': 0,
-            'completed_tasks': [],
-            'referred_by': None,
-            'referral_count': 0,
+            'balance': 0, 'promotions': [], 'last_bonus_time': 0,
+            'completed_tasks': [], 'referred_by': None, 'referral_count': 0,
         }
 
         if referrer_id and referrer_id in users and referrer_id != user_id:
           users[user_id]['referred_by'] = referrer_id
-          users[referrer_id]['referral_count'] = (
-              users[referrer_id].get('referral_count', 0) + 1
-          )
+          users[referrer_id]['referral_count'] = users[referrer_id].get('referral_count', 0) + 1
           users[referrer_id]['balance'] += bot_settings['referral_bonus']
           try:
             bot.send_message(
@@ -975,11 +1081,7 @@ def callback_query(call):
           reply_markup=get_main_menu(user_id),
       )
     else:
-      bot.answer_callback_query(
-          call.id,
-          '❌ You have not joined the channel yet!',
-          show_alert=True,
-      )
+      bot.answer_callback_query(call.id, '❌ You have not joined the channel yet!', show_alert=True)
 
   elif call.data == 'ask_screenshot':
     user_state[user_id] = 'WAITING_SCREENSHOT'
@@ -1016,26 +1118,17 @@ def callback_query(call):
 
     if target_user_id not in users:
       users[target_user_id] = {
-          'balance': 0,
-          'promotions': [],
-          'last_bonus_time': 0,
-          'completed_tasks': [],
-          'referred_by': None,
-          'referral_count': 0,
+          'balance': 0, 'promotions': [], 'last_bonus_time': 0,
+          'completed_tasks': [], 'referred_by': None, 'referral_count': 0,
       }
 
     if action == 'app':
       users[target_user_id]['balance'] += reward
 
-      if (
-          task_target
-          and task_target not in users[target_user_id]['completed_tasks']
-      ):
+      if (task_target and task_target not in users[target_user_id]['completed_tasks']):
         users[target_user_id]['completed_tasks'].append(task_target)
 
-      bot.answer_callback_query(
-          call.id, '✅ Approved and coins added!'
-      )
+      bot.answer_callback_query(call.id, '✅ Approved and coins added!')
       try:
         if call.message.content_type == 'photo':
             bot.edit_message_caption(
@@ -1065,9 +1158,7 @@ def callback_query(call):
         pass
 
     elif action == 'rej':
-      bot.answer_callback_query(
-          call.id, '❌ Task Rejected!'
-      )
+      bot.answer_callback_query(call.id, '❌ Task Rejected!')
       try:
         if call.message.content_type == 'photo':
             bot.edit_message_caption(
@@ -1095,33 +1186,48 @@ def callback_query(call):
       except:
         pass
 
+  # ====================== PROMOTE SELECTIONS ======================
+
   elif call.data == 'add_ig_follow':
     user_state[user_id] = 'WAITING_IG_FOLLOW'
     bot.answer_callback_query(call.id)
-    bot.send_message(
-        call.message.chat.id,
-        '📸 **Send your Instagram Username or Profile Link:**\n\n'
-        ': ``  ``',
-        parse_mode='Markdown',
-    )
+    bot.send_message(call.message.chat.id, '📸 **Send your Instagram Username or Profile Link:**', parse_mode='Markdown')
 
   elif call.data == 'add_ig_like':
     user_state[user_id] = 'WAITING_IG_LIKE'
     bot.answer_callback_query(call.id)
-    bot.send_message(
-        call.message.chat.id,
-        '❤️ **Send the full link to your Instagram Post or Reel:**',
-        parse_mode='Markdown',
-    )
+    bot.send_message(call.message.chat.id, '❤️ **Send the full link to your Instagram Post or Reel:**', parse_mode='Markdown')
 
   elif call.data == 'add_yt_sub':
     user_state[user_id] = 'WAITING_YT_SUB'
     bot.answer_callback_query(call.id)
-    bot.send_message(
-        call.message.chat.id,
-        '▶️ **Send the full link to your YouTube Channel:**',
-        parse_mode='Markdown',
-    )
+    bot.send_message(call.message.chat.id, '▶️ **Send the full link to your YouTube Channel:**', parse_mode='Markdown')
+
+  elif call.data == 'add_yt_video':
+    user_state[user_id] = 'WAITING_YT_VIDEO'
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '🎥 **Send the full link to your YouTube Video:**', parse_mode='Markdown')
+
+  elif call.data == 'add_tg_channel':
+    user_state[user_id] = 'WAITING_TG_CHANNEL'
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '📢 **Send your Telegram Channel Link or @username:**', parse_mode='Markdown')
+
+  elif call.data == 'add_fb_post':
+    user_state[user_id] = 'WAITING_FB_POST'
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '👍 **Send the full link to your Facebook Post:**', parse_mode='Markdown')
+
+  elif call.data == 'add_fb_reel':
+    user_state[user_id] = 'WAITING_FB_REEL'
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '🎞 **Send the full link to your Facebook Reel:**', parse_mode='Markdown')
+    
+  elif call.data == 'add_snapchat':
+    user_state[user_id] = 'WAITING_SNAPCHAT'
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, '👻 **Send your Snapchat Username or Profile Link:**', parse_mode='Markdown')
+
 
   elif call.data == 'custom_days':
     if user_id not in temp_promotion_data:
@@ -1144,9 +1250,7 @@ def callback_query(call):
 
   elif call.data.startswith('hrs_'):
     if user_id not in temp_promotion_data:
-      bot.answer_callback_query(
-          call.id, '❌ Something went wrong!', show_alert=True
-      )
+      bot.answer_callback_query(call.id, '❌ Something went wrong!', show_alert=True)
       return
 
     hours = int(call.data.split('_')[1])
@@ -1154,9 +1258,7 @@ def callback_query(call):
 
     if users[user_id]['balance'] < total_cost:
       bot.answer_callback_query(
-          call.id,
-          f'❌ Insufficient balance! {total_cost} Coins required.',
-          show_alert=True,
+          call.id, f'❌ Insufficient balance! {total_cost} Coins required.', show_alert=True,
       )
       user_state[user_id] = None
       temp_promotion_data.pop(user_id, None)
@@ -1178,6 +1280,16 @@ def callback_query(call):
       ig_like_pool.append(pool_item)
     elif promo_info['type'] == 'WAITING_YT_SUB':
       yt_sub_pool.append(pool_item)
+    elif promo_info['type'] == 'WAITING_TG_CHANNEL':
+      tg_channel_pool.append(pool_item)
+    elif promo_info['type'] == 'WAITING_FB_POST':
+      fb_post_pool.append(pool_item)
+    elif promo_info['type'] == 'WAITING_FB_REEL':
+      fb_reel_pool.append(pool_item)
+    elif promo_info['type'] == 'WAITING_YT_VIDEO':
+      yt_video_pool.append(pool_item)
+    elif promo_info['type'] == 'WAITING_SNAPCHAT':
+      snapchat_pool.append(pool_item)
 
     users[user_id]['promotions'].append(pool_item)
     user_state[user_id] = None
