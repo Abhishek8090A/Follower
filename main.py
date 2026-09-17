@@ -76,7 +76,13 @@ def check_subscription(user_id):
 
 # ----------------- Keyboard Generators -----------------
 def get_main_menu(user_id):
-  markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+  markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+  
+  # सबसे ऊपर आकर्षक प्रमोट बटन रखा गया है ताकि यूजर को साफ़-साफ़ दिखे
+  markup.add(types.KeyboardButton('🚀 ➕ Add & Promote Your Link ➕ 🚀'))
+  
+  # बाकी टास्क और फीचर्स के लिए 2-row layout
+  row2 = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   markup.add(
       types.KeyboardButton('📸 IG Follow Tasks'),
       types.KeyboardButton('❤️ IG Like Tasks'),
@@ -94,17 +100,14 @@ def get_main_menu(user_id):
       types.KeyboardButton('👻 Snapchat Tasks'),
   )
   markup.add(
-      types.KeyboardButton('➕ Promote Link'),
       types.KeyboardButton('🎁 Daily Bonus'),
-  )
-  markup.add(
       types.KeyboardButton('👥 Invite & Earn (Referral)'),
-      types.KeyboardButton('💰 My Profile'),
   )
   markup.add(
+      types.KeyboardButton('💰 My Profile'),
       types.KeyboardButton('💳 Buy Coins (Premium)'),
-      types.KeyboardButton('🎧 Support / Help')
   )
+  markup.add(types.KeyboardButton('🎧 Support / Help'))
 
   if user_id == ADMIN_ID:
     markup.add(types.KeyboardButton('👑 Admin Panel'))
@@ -206,9 +209,11 @@ def start_bot(message):
         pass
 
   welcome_text = (
-      '👋 **Welcome to the Multi-Promote Bot!**\n\n'
-      'Here you can earn coins by completing tasks and promote your links on an hourly or daily basis.\n\n'
-      '👇 Select an option from the menu below:'
+      '🔥 **Welcome to the Ultimate Promotion Bot!** 🔥\n\n'
+      '💡 **How it works:**\n'
+      '• Complete tasks to earn **Coins**.\n'
+      '• Click on **"🚀 ➕ Add & Promote Your Link"** button below to promote your Social Media / Channels!\n\n'
+      '👇 **Choose an option from the menu:**'
   )
   bot.send_message(
       message.chat.id,
@@ -1005,7 +1010,7 @@ def handle_text(message):
         reply_markup=markup, parse_mode='Markdown'
     )
 
-  elif text == '➕ Promote Link':
+  elif text == '🚀 ➕ Add & Promote Your Link ➕ 🚀':
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton('📸 IG Follow', callback_data='add_ig_follow'),
@@ -1026,7 +1031,7 @@ def handle_text(message):
 
     bot.send_message(
         message.chat.id,
-        '🚀 **Link Promotion Menu**\n\nSelect the platform where you want to promote your link or profile:',
+        '🚀 **Link Promotion Hub**\n\nSelect the platform below where you want to add your link or profile promotion:',
         reply_markup=markup,
         parse_mode='Markdown',
     )
@@ -1274,7 +1279,7 @@ def callback_query(call):
         text=f'📅 **Custom Days Promotion**\n\n'
              f'Please type in the chat how many **days** you want to promote for (Example: 5, 10, 30).\n\n'
              f'💡 1 Day charge: `{cost_per_day} Coins`',
-        parse_Mode='Markdown'
+        parse_mode='Markdown'
     )
     return
 
@@ -1312,7 +1317,7 @@ def callback_query(call):
       yt_sub_pool.append(pool_item)
     elif promo_info['type'] == 'WAITING_TG_CHANNEL':
       tg_channel_pool.append(pool_item)
-    elif promo_info['type'] == 'WAITING_FB_POST':
+    elif promo_info['type'] == 'WAIT_FB_POST' or promo_info['type'] == 'WAITING_FB_POST':
       fb_post_pool.append(pool_item)
     elif promo_info['type'] == 'WAITING_FB_REEL':
       fb_reel_pool.append(pool_item)
