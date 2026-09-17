@@ -78,10 +78,13 @@ def check_subscription(user_id):
 def get_main_menu(user_id):
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   
-  # सबसे ऊपर प्रमोट बटन
+  # 1. सबसे ऊपर प्रमोट बटन
   markup.add(types.KeyboardButton('🚀 ➕ Add & Promote Your Link ➕ 🚀'))
   
-  # मुख्य श्रेणियाँ (Categories)
+  # 2. ठीक उसके नीचे My Profile बटन (बड़े अंदाज़ में)
+  markup.add(types.KeyboardButton('💰 👤 My Profile & Balance 👤 💰'))
+  
+  # 3. बाकि मुख्य श्रेणियाँ (Categories)
   markup.add(
       types.KeyboardButton('📸 Instagram Tasks'),
       types.KeyboardButton('▶️ YouTube Tasks'),
@@ -96,12 +99,9 @@ def get_main_menu(user_id):
   )
   markup.add(
       types.KeyboardButton('👥 Invite & Earn (Referral)'),
-      types.KeyboardButton('💰 My Profile'),
-  )
-  markup.add(
       types.KeyboardButton('💳 Buy Coins (Premium)'),
-      types.KeyboardButton('🎧 Support / Help')
   )
+  markup.add(types.KeyboardButton('🎧 Support / Help'))
 
   if user_id == ADMIN_ID:
     markup.add(types.KeyboardButton('👑 Admin Panel'))
@@ -291,6 +291,7 @@ def handle_text(message):
   # --- MAIN MENU NAVIGATION (Reset State if clicking any main button) ---
   if text in [
       '🚀 ➕ Add & Promote Your Link ➕ 🚀',
+      '💰 👤 My Profile & Balance 👤 💰',
       '📸 Instagram Tasks',
       '▶️ YouTube Tasks',
       '👍 Facebook Tasks',
@@ -298,7 +299,6 @@ def handle_text(message):
       '👻 Snapchat Tasks',
       '🎁 Daily Bonus',
       '👥 Invite & Earn (Referral)',
-      '💰 My Profile',
       '💳 Buy Coins (Premium)',
       '🎧 Support / Help',
       '👑 Admin Panel'
@@ -828,7 +828,7 @@ def handle_text(message):
         reply_markup=support_markup
     )
 
-  elif text == '💰 My Profile':
+  elif text == '💰 👤 My Profile & Balance 👤 💰':
     bal = users[user_id]['balance']
     promos = len(users[user_id]['promotions'])
     ref_count = users[user_id].get('referral_count', 0)
