@@ -78,10 +78,10 @@ def check_subscription(user_id):
 def get_main_menu(user_id):
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   
-  # 1. सबसे ऊपर प्रमोट बटन
+  # सबसे ऊपर प्रमोट बटन
   markup.add(types.KeyboardButton('🚀 ➕ Add & Promote Your Link ➕ 🚀'))
   
-  # 2. अलग-अलग प्लेटफॉर्म की मुख्य श्रेणियाँ (Categories)
+  # मुख्य श्रेणियाँ (Categories)
   markup.add(
       types.KeyboardButton('📸 Instagram Tasks'),
       types.KeyboardButton('▶️ YouTube Tasks'),
@@ -287,6 +287,23 @@ def handle_text(message):
         'referred_by': None,
         'referral_count': 0,
     }
+
+  # --- MAIN MENU NAVIGATION (Reset State if clicking any main button) ---
+  if text in [
+      '🚀 ➕ Add & Promote Your Link ➕ 🚀',
+      '📸 Instagram Tasks',
+      '▶️ YouTube Tasks',
+      '👍 Facebook Tasks',
+      '📢 Telegram Tasks',
+      '👻 Snapchat Tasks',
+      '🎁 Daily Bonus',
+      '👥 Invite & Earn (Referral)',
+      '💰 My Profile',
+      '💳 Buy Coins (Premium)',
+      '🎧 Support / Help',
+      '👑 Admin Panel'
+  ]:
+    user_state[user_id] = None # पुराना स्टेट साफ़ कर दिया ताकि दूसरे मेनू पर जाने पर एरर न आए
 
   current_state = user_state.get(user_id)
 
