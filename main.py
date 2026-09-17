@@ -38,7 +38,7 @@ tg_channel_pool = []
 fb_post_pool = []      
 fb_reel_pool = []      
 yt_video_pool = []     
-snapchat_pool = []     # New Snapchat Pool
+snapchat_pool = []     
 
 
 # ----------------- Auto-Cleanup Background Worker -----------------
@@ -91,7 +91,7 @@ def get_main_menu(user_id):
   )
   markup.add(
       types.KeyboardButton('🎞 FB Reel Tasks'),
-      types.KeyboardButton('👻 Snapchat Tasks'), # New Snapchat Button
+      types.KeyboardButton('👻 Snapchat Tasks'),
   )
   markup.add(
       types.KeyboardButton('➕ Promote Link'),
@@ -979,7 +979,6 @@ def handle_text(message):
         reply_markup=markup, parse_mode='Markdown'
     )
 
-  # ---------- NEW SNAPCHAT TASK HANDLER ----------
   elif text == '👻 Snapchat Tasks':
     completed = users[user_id].get('completed_tasks', [])
     available_pool = [item for item in snapchat_pool if item['target'] not in completed]
@@ -1005,7 +1004,6 @@ def handle_text(message):
         message.chat.id, '📌 **Add this user or view their Snapchat and send a screenshot:**',
         reply_markup=markup, parse_mode='Markdown'
     )
-  # -----------------------------------------------
 
   elif text == '➕ Promote Link':
     markup = types.InlineKeyboardMarkup(row_width=2)
@@ -1023,12 +1021,12 @@ def handle_text(message):
     )
     markup.add(
         types.InlineKeyboardButton('🎞 FB Reel', callback_data='add_fb_reel'),
-        types.InlineKeyboardButton('👻 Snapchat', callback_data='add_snapchat') # New Snapchat Button
+        types.InlineKeyboardButton('👻 Snapchat', callback_data='add_snapchat')
     )
 
     bot.send_message(
         message.chat.id,
-        '🚀 What do you want to promote?',
+        '🚀 **Link Promotion Menu**\n\nSelect the platform where you want to promote your link or profile:',
         reply_markup=markup,
         parse_mode='Markdown',
     )
@@ -1191,42 +1189,74 @@ def callback_query(call):
   elif call.data == 'add_ig_follow':
     user_state[user_id] = 'WAITING_IG_FOLLOW'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '📸 **Send your Instagram Username or Profile Link:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '📸 **Instagram Follow Promotion Setup**\n\nSend your Instagram Username or Profile Link below:', 
+        parse_mode='Markdown'
+    )
 
   elif call.data == 'add_ig_like':
     user_state[user_id] = 'WAITING_IG_LIKE'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '❤️ **Send the full link to your Instagram Post or Reel:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '❤️ **Instagram Post/Reel Promotion Setup**\n\nSend the full link to your Instagram Post or Reel below:', 
+        parse_mode='Markdown'
+    )
 
   elif call.data == 'add_yt_sub':
     user_state[user_id] = 'WAITING_YT_SUB'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '▶️ **Send the full link to your YouTube Channel:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '▶️ **YouTube Channel Promotion Setup**\n\nSend the full link to your YouTube Channel below:', 
+        parse_mode='Markdown'
+    )
 
   elif call.data == 'add_yt_video':
     user_state[user_id] = 'WAITING_YT_VIDEO'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '🎥 **Send the full link to your YouTube Video:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '🎥 **YouTube Video Promotion Setup**\n\nSend the full link to your YouTube Video below:', 
+        parse_mode='Markdown'
+    )
 
   elif call.data == 'add_tg_channel':
     user_state[user_id] = 'WAITING_TG_CHANNEL'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '📢 **Send your Telegram Channel Link or @username:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '📢 **Telegram Channel Promotion Setup**\n\nSend your Telegram Channel Link or @username below:', 
+        parse_mode='Markdown'
+    )
 
   elif call.data == 'add_fb_post':
     user_state[user_id] = 'WAITING_FB_POST'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '👍 **Send the full link to your Facebook Post:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '👍 **Facebook Post Promotion Setup**\n\nSend the full link to your Facebook Post below:', 
+        parse_mode='Markdown'
+    )
 
   elif call.data == 'add_fb_reel':
     user_state[user_id] = 'WAITING_FB_REEL'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '🎞 **Send the full link to your Facebook Reel:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '🎞 **Facebook Reel Promotion Setup**\n\nSend the full link to your Facebook Reel below:', 
+        parse_mode='Markdown'
+    )
     
   elif call.data == 'add_snapchat':
     user_state[user_id] = 'WAITING_SNAPCHAT'
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, '👻 **Send your Snapchat Username or Profile Link:**', parse_mode='Markdown')
+    bot.send_message(
+        call.message.chat.id, 
+        '👻 **Snapchat Promotion Setup**\n\nSend your Snapchat Username or Profile Link below:', 
+        parse_mode='Markdown'
+    )
 
 
   elif call.data == 'custom_days':
@@ -1241,10 +1271,10 @@ def callback_query(call):
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text=f'📅 **Custom Days**\n\n'
+        text=f'📅 **Custom Days Promotion**\n\n'
              f'Please type in the chat how many **days** you want to promote for (Example: 5, 10, 30).\n\n'
              f'💡 1 Day charge: `{cost_per_day} Coins`',
-        parse_mode='Markdown'
+        parse_Mode='Markdown'
     )
     return
 
